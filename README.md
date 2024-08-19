@@ -62,6 +62,7 @@ This function recursively searches for a specific key in a nested JSON structure
 
 ## Bot Functions
 [Functional]
+
 `get_bloodmoon_day()`
 Fetches the current day from the game server and calculates the number of days until the next Blood Moon. Blood Moons occur every 7 days.
 
@@ -69,6 +70,7 @@ Fetches the current day from the game server and calculates the number of days u
 Fetches the current day in the game from the server.
 
 [Work in Progress]
+
 `get_player(value)`
 Fetches player information from the game server. The value parameter determines what specific information is retrieved (e.g., player ID, name, platform ID, etc.). The function uses several helper functions to extract specific pieces of player data.
 
@@ -92,6 +94,7 @@ Options:
         "all_no_id": get_all_no_id,
 ```
 [Future]
+
 `heal_all`
 `teleport`
 `kick`
