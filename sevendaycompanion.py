@@ -16,7 +16,7 @@ intents.message_content = True
 # 7 Days Token Values
 token_name = os.getenv('TOKEN_NAME') # X-SDTD-API-TOKENNAME -- Actual Key Name for Token Name
 token_value = os.getenv('TOKEN_SECRET') # X-SDTD-API-TOKENSECRET -- Actual Key Name for Secret
-web_Url = 'http://50.20.249.117:27026/api' #Should be the URL for the portal but instead of the app that we are accessing we will use 'api'
+web_Url = os.getenv('WEB_URL') #Should be the URL for the portal but instead of the app that we are accessing we will use 'api'
 
 # Create a new bot
 client = discord.Client(intents=intents)
