@@ -6,11 +6,11 @@ This script is a Discord bot designed to interact with a "7 Days to Die" game se
 ### Environment Variables
 The bot requires the following environment variables to be set in a .env file:
 
-DISCORD_TOKEN: The token for your Discord bot.
+**DISCORD_TOKEN:** The token for your Discord bot.
 
-TOKEN_NAME: The token name for accessing the 7 Days to Die server API.
+**TOKEN_NAME:** The token name for accessing the 7 Days to Die server API.
 
-TOKEN_SECRET: The token secret for accessing the 7 Days to Die server API.
+**TOKEN_SECRET:** The token secret for accessing the 7 Days to Die server API.
 
 ## Dependencies
 The following Python libraries are required:
