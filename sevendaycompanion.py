@@ -3,7 +3,6 @@ import os
 import discord
 import requests
 from discord.ext import commands
-from discord import app_commands
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -64,7 +63,6 @@ def get_bloodmoon_day():
     }
     response = requests.get(url, headers=headers)
     if response.status_code == 200:
-        print('Success!')
         data = response.json()
         current_day = data['data']['gameTime']['days']
         bloodmoon_day = 7 - (current_day % 7)
@@ -81,7 +79,6 @@ def get_current_day():
     }
     response = requests.get(url, headers=headers)
     if response.status_code == 200:
-        print('Success!')
         data = response.json()
         current_day = data['data']['gameTime']['days']
         return current_day
@@ -90,7 +87,7 @@ def get_current_day():
         return None # Handle Error
 
 
-def get_player(user, value):
+def get_player(value, user = None):
     url = web_Url + '/Player'
     headers = {
         "X-SDTD-API-TOKENNAME": token_name,
@@ -99,34 +96,35 @@ def get_player(user, value):
     }
     response = requests.get(url, headers=headers)
     if response.status_code == 200:
-        print('Success!')
         player_data = { }
         data = response.json()
         player_data_count = len(data['data']['players'])
-        print(player_data_count)
-        for player_ind in data['data']['players']:
+
+        count = 0
+        for (player_ind) in data['data']['players']:
             #For each player in the list of players (represented by a integer), create an object for each player
-            player_data[player_ind] = {
-                "id": data['data']['players'][player_ind]['entityId'],
-                "name": data['data']['players'][player_ind]['name'],
-                "platformId": data['data']['players'][player_ind]['platformId']['combinedString'],
-                "crossplatformId": data['data']['players'][player_ind]['crossplatformId']['combinedString'],
-                "ip": data['data']['players'][player_ind]['ip'],
-                "ping": data['data']['players'][player_ind]['ping'],
-                "position_x": data['data']['players'][player_ind]['position']['x'],
-                "position_y": data['data']['players'][player_ind]['position']['y'],
-                "position_z": data['data']['players'][player_ind]['position']['z'],
-                #"level": data['data']['players'][player_ind]['level'], #Not available in the API yet?
-                "health": data['data']['players'][player_ind]['health'],
-                "stamina": data['data']['players'][player_ind]['stamina'],
-                "score": data['data']['players'][player_ind]['score'],
-                "deaths": data['data']['players'][player_ind]['deaths'],
-                "zombies_kills": data['data']['players'][player_ind]['kills']['zombies'],
-                "players_kills": data['data']['players'][player_ind]['kills']['players'],
-                "banned": data['data']['players'][player_ind]['banned']['banActive'],
-                "banned_reason": data['data']['players'][player_ind]['banned']['reason'],
-                "banned_until": data['data']['players'][player_ind]['banned']['until'],
+            player_data[count] = {
+                "id": data['data']['players'][count]['entityId'],
+                "name": data['data']['players'][count]['name'],
+                "platformId": data['data']['players'][count]['platformId']['combinedString'],
+                "crossplatformId": data['data']['players'][count]['crossplatformId']['combinedString'],
+                "ip": data['data']['players'][count]['ip'],
+                "ping": data['data']['players'][count]['ping'],
+                "position_x": data['data']['players'][count]['position']['x'],
+                "position_y": data['data']['players'][count]['position']['y'],
+                "position_z": data['data']['players'][count]['position']['z'],
+                #"level": data['data']['players'][count]['level'], #Not available in the API yet?
+                "health": data['data']['players'][count]['health'],
+                "stamina": data['data']['players'][count]['stamina'],
+                "score": data['data']['players'][count]['score'],
+                "deaths": data['data']['players'][count]['deaths'],
+                "zombies_kills": data['data']['players'][count]['kills']['zombies'],
+                "players_kills": data['data']['players'][count]['kills']['players'],
+                "banned": data['data']['players'][count]['banned']['banActive'],
+                "banned_reason": data['data']['players'][count]['banned']['reason'],
+                "banned_until": data['data']['players'][count]['banned']['until'],
             }
+            count += 1
         if player_data[0] != None:
             #If there are players online, this can return data
             #If requesting players name, return name of player
@@ -141,6 +139,23 @@ def get_player(user, value):
                 for x in player_data:
                     if player_data[x]['name'] == user:
                         return_msg = player_data[x]['name'] + ' has a ping of ' + str(player_data[x]['ping']) + 'ms.'
+                return return_msg
+            elif value == 'whoisonline':
+                return_msg = 'Online Players: '
+                for x in player_data:
+                    if len(player_data) != 1:
+                        return_msg += player_data[x]['name'] + '; '
+                    elif len(player_data) == 1:
+                        return_msg = player_data[x]['name'] + ' is online.'
+                return return_msg
+            elif value == 'stats':
+                return_msg = ''
+                for x in player_data:
+                    if player_data[x]['name'] == user:
+                        return_msg = (player_data[x]['name'] + '/n Health: ' + str(player_data[x]['health']) + '/100.' + '/n' +
+                        'Stamina: ' + str(player_data[x]['stamina']) + '/100.' + '/n' + 'Score: ' + str(player_data[x]['score']) + '/n' +
+                        'Deaths: ' + str(player_data[x]['deaths']) + '/n' + 'Zombies Killed: ' + str(player_data[x]['zombies_kills']) + '/n' +
+                        'Players Killed: ' + str(player_data[x]['players_kills']) + '/n' + 'Banned: ' + str(player_data[x]['banned']))
                 return return_msg
         else:
             return "Player may be offline right now."
@@ -167,23 +182,14 @@ async def on_ready():
 # Event Listener for Bot Messages
 @bot.event
 async def on_message(message):
-    msg = ''
-    bloodmoon_day = get_bloodmoon_day()
-    cur_day = get_current_day()
     if message.author == bot.user:
         return
+    print(f'{message.author} said: {message.content}')
 
-    ### Bot Commands [via Event Listener]
-    # !bloodmoon or !bm - Get the next Blood Moon Day
-    if message.content.startswith('?bloodmoon') or message.content.startswith('?bm'):
-        msg = '[CURRENT DAY: ' + str(cur_day) + '] - The next Blood Moon is in: ' + str(bloodmoon_day) + ' days.'
-        await message.delete()
-        await message.channel.send(msg)
-    # !currentday or !cd - Get the current day
-    elif message.content.startswith('?currentday') or message.content.startswith('?cd'):
-        msg = 'The current day is: ' + str(cur_day)
-        await message.delete()
-        await message.channel.send(msg)
+    # Process Commands
+    await bot.process_commands(message)
+    await message.delete()
+
 
 ############################################################################################################################################################################################################
 # Bot Commands (Commands)
@@ -194,20 +200,52 @@ async def helpme(ctx):
         description='List of Commands for the 7 Days to Die Companion Bot',
         color=discord.Color.blue()
     )
-    embed.add_field(name='!help', value='Get the list of commands', inline=False)
+    embed.add_field(name='!helpme', value='Get the list of commands', inline=False)
     embed.add_field(name='!ping', value='Pong!', inline=False)
-    embed.add_field(name='!bloodmoon or !bm', value='Get the next Blood Moon Day', inline=False)
-    embed.add_field(name='!currentday or !cd', value='Get the current day', inline=False)
+    embed.add_field(name='!bm', value='Get the next Blood Moon Day', inline=False)
+    embed.add_field(name='!cd', value='Get the current day', inline=False)
     await ctx.send(embed=embed)
 
 @bot.command()
 async def ping(ctx):
     await ctx.send('Pong!')
 
+@bot.command(
+    name='bloodmoon',
+    aliases=['bm']
+)
+async def bm(ctx):
+    bloodmoon_day = get_bloodmoon_day()
+    cur_day = get_current_day()
+    msg = '[CURRENT DAY: ' + str(cur_day) + '] - The next Blood Moon is in: ' + str(bloodmoon_day) + ' days.'
+    await ctx.send(msg)
+
+@bot.command(
+    name='currentday',
+    aliases=['cd']
+)
+async def cd(ctx):
+    cur_day = get_current_day()
+    msg = 'The current day is: ' + str(cur_day)
+    await ctx.send(msg)
+
 @bot.command()
-async def userstats(ctx, user: str, value: str):
-    sel_player = get_player(user, value)
-    await ctx.send(sel_player)
+async def whoisonline(ctx):
+    online_players = get_player('whoisonline')
+    await ctx.send(online_players)
+@bot.command()
+async def userstats(ctx, user: str, stat: str):
+    if stat == 'ping':
+        sel_player = get_player(stat, user)
+        await ctx.send(sel_player)
+    elif stat == 'online':
+        sel_player = get_player(stat, user)
+        await ctx.send(sel_player)
+    elif stat == 'stats':
+        sel_player = get_player(stat, user)
+        await ctx.send(sel_player)
+    else:
+        await ctx.send('Invalid command or not Implemented yet. Please try again.')
 
 ############################################################################################################################################################################################################
 # Running the bot
