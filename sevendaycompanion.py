@@ -203,11 +203,16 @@ async def ping(ctx):
 @bot.command(
     name='bloodmoon',
     aliases=['bm']
+    description='Get the next Blood Moon Day'
 )
+# Get the Blood Moon Day -- If blood moon is tonight, it will say it is ongoing, this mostly does the string configuration for it the actual call is done in the function.
 async def bm(ctx):
-    bloodmoon_day = get_bloodmoon_day()
+    bloodmoon_day = get_bloodmoon_day() #This value will give you the amount of days until the next blood moon, if its the day you are on it will return 7 because is calculating to the next one.
     cur_day = get_current_day()
-    msg = '[CURRENT DAY: ' + str(cur_day) + '] - The next Blood Moon is in: ' + str(bloodmoon_day) + ' days.'
+    if cur_day % 7 == 0:
+        msg = 'The Blood Moon is tonight, or ongoing!' # Cici couldn't figure this out, so I had to make sure it was different so it didn't confuse her
+    else:
+        msg = 'The next Blood Moon is in: ' + str(bloodmoon_day) + ' days.' 
     await ctx.send(msg)
 
 @bot.command(
