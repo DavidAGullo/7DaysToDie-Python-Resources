@@ -1,7 +1,10 @@
 # Discord bot.py for 7 Days to Die Companion Bot
+import asyncio
 import os
 import discord
 import requests
+from discord import app_commands
+from discord.ext import commands
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -13,13 +16,13 @@ discord_token = os.getenv('DISCORD_TOKEN') # Discord Bot Token
 intents = discord.Intents.default()
 intents.message_content = True
 
+# Create the bot with all intents
+bot = commands.Bot(command_prefix='!', intents=intents)
+
 # 7 Days Token Values
 token_name = os.getenv('TOKEN_NAME') # X-SDTD-API-TOKENNAME -- Actual Key Name for Token Name
 token_value = os.getenv('TOKEN_SECRET') # X-SDTD-API-TOKENSECRET -- Actual Key Name for Secret
 web_Url = os.getenv('WEB_URL') #Should be the URL for the portal but instead of the app that we are accessing we will use 'api'
-
-# Create a new bot
-client = discord.Client(intents=intents)
 
 ############################################################################################################################################################################################################
 ############################################################################################################################################################################################################
@@ -59,7 +62,6 @@ def get_bloodmoon_day():
     }
     response = requests.get(url, headers=headers)
     if response.status_code == 200:
-        print('Success!')
         data = response.json()
         current_day = data['data']['gameTime']['days']
         bloodmoon_day = 7 - (current_day % 7)
@@ -76,7 +78,6 @@ def get_current_day():
     }
     response = requests.get(url, headers=headers)
     if response.status_code == 200:
-        print('Success!')
         data = response.json()
         current_day = data['data']['gameTime']['days']
         return current_day
@@ -86,147 +87,75 @@ def get_current_day():
 
 
 def get_player(value):
-    url = web_Url + '/Player'
-    headers = {
-        "X-SDTD-API-TOKENNAME": token_name,
-        "X-SDTD-API-SECRET": token_value,
-        "Content-Type": "application/json"
-    }
-    response = requests.get(url, headers=headers)
+    try:
+        url = web_Url + '/Player'
+        headers = {
+            "X-SDTD-API-TOKENNAME": token_name,
+            "X-SDTD-API-SECRET": token_value,
+            "Content-Type": "application/json"
+        }
+        response = requests.get(url, headers=headers)
+        if response.status_code == 200:
+            player_data = {}
+            data = response.json()
+            player_data_count = len(data['data']['players'])
 
-    if response.status_code != 200:
-        print('Error!')
-        return None  # Handle Error
-
-    print('Success!')
-    data = response.json()
-
-    players = data.get('data', {}).get('players', [])
-
-    if not players:
-        return "No players found or an error occurred."
-
-    # Helper functions to extract data
-    def get_player_id():
-        return [player['entityId'] for player in players]
-
-    def get_player_name():
-        return [player['name'] for player in players]
-
-    def get_platform_id():
-        return '\n'.join([
-                             f"Platform ID: {player['platformId']['combinedString']} | EOS ID: {player['crossplatformId']['combinedString']}"
-                             for player in players])
-
-    def get_ip():
-        return [player['ip'] for player in players]
-
-    def get_ping():
-        return [player['ping'] for player in players]
-
-    def get_health():
-        return [player['health'] for player in players]
-
-    def get_stamina():
-        return [player['stamina'] for player in players]
-
-    def get_score():
-        return [player['score'] for player in players]
-
-    def get_deaths():
-        return [player['deaths'] for player in players]
-
-    def get_kill_zombie():
-        return [player['kills']['zombies'] for player in players]
-
-    def get_kill_player():
-        return [player['kills']['players'] for player in players]
-
-    def get_is_banned():
-        return [player['banned']['banActive'] for player in players]
-
-    def get_ban_reason():
-        return [player['banned']['reason'] for player in players]
-
-    def get_ban_expire():
-        return [player['banned']['until'] for player in players]
-
-    def get_all_info():
-        return '\n'.join([
-            f"Player ID: {player['entityId']}\n"
-            f"Name: {player['name']}\n"
-            f"Platform ID: {player['platformId']['combinedString']}\n"
-            f"EOS ID: {player['crossplatformId']['combinedString']}\n"
-            f"IP: {player['ip']}\n"
-            f"Ping: {player['ping']}\n"
-            f"Health: {player['health']}\n"
-            f"Stamina: {player['stamina']}\n"
-            f"Score: {player['score']}\n"
-            f"Deaths: {player['deaths']}\n"
-            f"Zombie Kills: {player['kills']['zombies']}\n"
-            f"Player Kills: {player['kills']['players']}\n"
-            f"Banned: {player['banned']['banActive']}\n"
-            f"Ban Reason: {player['banned']['reason']}\n"
-            f"Ban Expire: {player['banned']['until']}\n"
-            for player in players
-        ])
-
-    def get_all_no_id():
-        return '\n'.join([
-            f"Name: {player['name']}\n"
-            f"Platform ID: {player['platformId']['combinedString']}\n"
-            f"EOS ID: {player['crossplatformId']['combinedString']}\n"
-            f"IP: {player['ip']}\n"
-            f"Ping: {player['ping']}\n"
-            f"Health: {player['health']}\n"
-            f"Stamina: {player['stamina']}\n"
-            f"Score: {player['score']}\n"
-            f"Deaths: {player['deaths']}\n"
-            f"Zombie Kills: {player['kills']['zombies']}\n"
-            f"Player Kills: {player['kills']['players']}\n"
-            f"Banned: {player['banned']['banActive']}\n"
-            f"Ban Reason: {player['banned']['reason']}\n"
-            f"Ban Expire: {player['banned']['until']}\n"
-            for player in players
-        ])
-
-    # Dictionary to handle different value cases (simulating a switch-case)
-    switch = {
-        "id": get_player_id,
-        "name": get_player_name,
-        "platform_id": get_platform_id,
-        "ip": get_ip,
-        "ping": get_ping,
-        "health": get_health,
-        "stamina": get_stamina,
-        "score": get_score,
-        "death": get_deaths,
-        "kill_zombie": get_kill_zombie,
-        "kill_player": get_kill_player,
-        "isBanned": get_is_banned,
-        "banReason": get_ban_reason,
-        "banExpire": get_ban_expire,
-        "all": get_all_info,
-        "all_no_id": get_all_no_id,
-        "t": lambda: "Test"  # Test case
-    }
-
-    # Call the appropriate function from the switch dictionary
-    result = switch.get(value, lambda: None)()
-
-    return result
+            count = 0
+            for (player_ind) in data['data']['players']:
+                # For each player in the list of players (represented by a integer), create an object for each player
+                player_data[count] = {
+                    "id": data['data']['players'][count]['entityId'],
+                    "name": data['data']['players'][count]['name'],
+                    "platformId": data['data']['players'][count]['platformId']['combinedString'],
+                    "crossplatformId": data['data']['players'][count]['crossplatformId']['combinedString'],
+                    "ip": data['data']['players'][count]['ip'],
+                    "ping": data['data']['players'][count]['ping'],
+                    "position_x": data['data']['players'][count]['position']['x'],
+                    "position_y": data['data']['players'][count]['position']['y'],
+                    "position_z": data['data']['players'][count]['position']['z'],
+                    # "level": data['data']['players'][count]['level'], #Not available in the API yet?
+                    "health": data['data']['players'][count]['health'],
+                    "stamina": data['data']['players'][count]['stamina'],
+                    "score": data['data']['players'][count]['score'],
+                    "deaths": data['data']['players'][count]['deaths'],
+                    "zombies_kills": data['data']['players'][count]['kills']['zombies'],
+                    "players_kills": data['data']['players'][count]['kills']['players'],
+                    "banned": data['data']['players'][count]['banned']['banActive'],
+                    "banned_reason": data['data']['players'][count]['banned']['reason'],
+                    "banned_until": data['data']['players'][count]['banned']['until'],
+                }
+                count += 1
+            if player_data[0] != None:
+                # If there are players online, this can return data
+                # If requesting players name, return name of player
+                if value == 'stats':
+                    return player_data
+                elif value == 'whoisonline':
+                    return_msg = 'Online Players: '
+                    for x in player_data:
+                        if len(player_data) != 1:
+                            return_msg += player_data[x]['name'] + '; '
+                        elif len(player_data) == 1:
+                            return_msg = player_data[x]['name'] + ' is online.'
+                    return return_msg
+            else:
+                return "Players may be offline right now."
+        else:
+            print('Error!')
+            return None  # Handle
+    except Exception as e:
+        print('Error: ' + str(e))
+        return "Players are Offline or Error Occurred."
 
 ############################################################################################################################################################################################################
 ############################################################################################################################################################################################################
-############################################################################################################################################################################################################
-
 # Event Listener for Bot OFFLINE/ONLINE STATUS
-@client.event
+@bot.event
 async def on_ready():
     print('We have now Connected!')
     guild_count = 0
 
-    for guild in client.guilds:
+    for guild in bot.guilds:
         print(f'Guild Name: {guild.name}')
         print(f'Guild ID: {guild.id}')
         guild_count += 1
@@ -234,49 +163,100 @@ async def on_ready():
     print(f'7 Days to Die Companion Bot is in {guild_count} guilds.')
 
 ############################################################################################################################################################################################################
-############################################################################################################################################################################################################
-
 # Event Listener for Bot Messages
-@client.event
+@bot.event
 async def on_message(message):
-    msg = ''
+    if message.author == bot.user:
+        return
+    print(f'{message.author} said: {message.content}')
+
+    # Process Commands
+    await bot.process_commands(message)
+    if message.content.startswith('!'): # Check if Command
+        # Delete Messages that are commands
+        await message.delete()
+
+
+############################################################################################################################################################################################################
+# Bot Commands (Commands)
+@bot.command()
+async def helpme(ctx): # Help Command -- helpme -- Update as needed
+    embed = discord.Embed(
+        title='7 Days to Die Companion Bot',
+        description='List of Commands for the 7 Days to Die Companion Bot',
+        color=discord.Color.blue()
+    )
+    embed.add_field(name='!helpme', value='Get the list of commands', inline=False)
+    embed.add_field(name='!ping', value='Pong!', inline=False)
+    embed.add_field(name='!bm', value='Get the next Blood Moon Day', inline=False)
+    embed.add_field(name='!cd', value='Get the current day', inline=False)
+    embed.add_field(name='!whoisonline', value='Get the list of online players', inline=False)
+    embed.add_field(name='!playerstats <player>', value='Get the stats of a player NOTE: Username is Case-sensitive', inline=False)
+    #For Admins Only
+    embed.add_field(name='!clear_bot_messages <amount>', value='Clears the bot messages in the channel (Staff Only)', inline=False)
+    await ctx.send(embed=embed)
+
+@bot.command()
+async def ping(ctx):
+    await ctx.send('Pong!')
+
+@bot.command(
+    name='bloodmoon',
+    aliases=['bm']
+)
+async def bm(ctx):
     bloodmoon_day = get_bloodmoon_day()
     cur_day = get_current_day()
-    if message.author == client.user:
-        return
+    msg = '[CURRENT DAY: ' + str(cur_day) + '] - The next Blood Moon is in: ' + str(bloodmoon_day) + ' days.'
+    await ctx.send(msg)
 
-### Bot Commands [via Event Listener]
-    # !bloodmoon or !bm - Get the next Blood Moon Day
-    if message.content.startswith('!bloodmoon') or message.content.startswith('!bm'):
-        msg = '[CURRENT DAY: ' + str(cur_day) + '] - The next Blood Moon is on Day: ' + str(bloodmoon_day)
-        await message.delete()
+@bot.command(
+    name='currentday',
+    aliases=['cd']
+)
+async def cd(ctx):
+    cur_day = get_current_day()
+    msg = 'The current day is: ' + str(cur_day)
+    await ctx.send(msg)
 
-        def is_string(m):
-            return "the next blood moon is on day:" in m.content.lower()
+@bot.command()
+async def whoisonline(ctx):
+    online_players = get_player('whoisonline')
+    await ctx.send(online_players)
+@bot.command()
+async def playerstats(ctx, user: str):
+    try:
+        sel_player = ''
+        all_player_stats = get_player("stats")
+        for x in all_player_stats:
+            if all_player_stats[x]['name'] == user:
+                sel_player = 'Player: ' + all_player_stats[x]['name'] + '\n' + \
+                             'Health: ' + str(all_player_stats[x]['health']) + '\n' + \
+                             'Stamina: ' + str(all_player_stats[x]['stamina']) + '\n' + \
+                             'Score: ' + str(all_player_stats[x]['score']) + '\n' + \
+                             'Deaths: ' + str(all_player_stats[x]['deaths']) + '\n' + \
+                             'Zombie Kills: ' + str(all_player_stats[x]['zombies_kills']) + '\n' + \
+                             'Player Kills: ' + str(all_player_stats[x]['players_kills']) + '\n'
+        await ctx.send(sel_player)
+    except Exception as e:
+        print('Error: ' + str(e))
+        await ctx.send('Player is not online or does not exist.')
 
-        deleted = await message.channel.purge(limit=500, check=is_string)
-        await message.channel.send(msg)
-    # !currentday or !cd - Get the current day
-    elif message.content.startswith('!currentday') or message.content.startswith('!cd'):
-        msg = 'The current day is: ' + str(cur_day)
-        await message.delete()
+@bot.command()
+async def clear_bot_messages(ctx, amount: int = 5):
+    role_ids = [1243655876305223730, 1243655630783512699]  # Replace with your role's ID
+    has_role = any(discord.utils.get(ctx.author.roles, id=role_id) for role_id in role_ids)
 
-        def is_string(m):
-            return "the current day is:" in m.content.lower()
+    if has_role:
+        def is_bot(m):
+            return m.author == bot.user
 
-        deleted = await message.channel.purge(limit=500, check=is_string)
-        await message.channel.send(msg)
-    # !viewonline or !vo - Get the number of players online and their names
-    elif message.content.startswith('!viewonline') or message.content.startswith('!vo'):
-        await message.delete()
-        msg = get_player("name")
-        if msg:  # Check if msg is not None or empty
-            await message.channel.send(msg)
-        else:
-            await message.channel.send("No online players found or an error occurred.")
+        await ctx.channel.purge(limit=amount, check=is_bot)
+    else:
+        await ctx.send("You don't have the required role to use this command.")
+
 
 ############################################################################################################################################################################################################
-############################################################################################################################################################################################################
-
-client.run(discord_token)
+# Running the bot
+bot.run(discord_token)
 
