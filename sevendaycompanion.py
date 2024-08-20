@@ -87,81 +87,79 @@ def get_current_day():
         return None # Handle Error
 
 
-def get_player(value, user = None):
-    url = web_Url + '/Player'
-    headers = {
-        "X-SDTD-API-TOKENNAME": token_name,
-        "X-SDTD-API-SECRET": token_value,
-        "Content-Type": "application/json"
-    }
-    response = requests.get(url, headers=headers)
-    if response.status_code == 200:
-        player_data = { }
-        data = response.json()
-        player_data_count = len(data['data']['players'])
+def get_player(value):
+    try:
+        url = web_Url + '/Player'
+        headers = {
+            "X-SDTD-API-TOKENNAME": token_name,
+            "X-SDTD-API-SECRET": token_value,
+            "Content-Type": "application/json"
+        }
+        response = requests.get(url, headers=headers)
+        if response.status_code == 200:
+            player_data = {}
+            data = response.json()
+            player_data_count = len(data['data']['players'])
 
-        count = 0
-        for (player_ind) in data['data']['players']:
-            #For each player in the list of players (represented by a integer), create an object for each player
-            player_data[count] = {
-                "id": data['data']['players'][count]['entityId'],
-                "name": data['data']['players'][count]['name'],
-                "platformId": data['data']['players'][count]['platformId']['combinedString'],
-                "crossplatformId": data['data']['players'][count]['crossplatformId']['combinedString'],
-                "ip": data['data']['players'][count]['ip'],
-                "ping": data['data']['players'][count]['ping'],
-                "position_x": data['data']['players'][count]['position']['x'],
-                "position_y": data['data']['players'][count]['position']['y'],
-                "position_z": data['data']['players'][count]['position']['z'],
-                #"level": data['data']['players'][count]['level'], #Not available in the API yet?
-                "health": data['data']['players'][count]['health'],
-                "stamina": data['data']['players'][count]['stamina'],
-                "score": data['data']['players'][count]['score'],
-                "deaths": data['data']['players'][count]['deaths'],
-                "zombies_kills": data['data']['players'][count]['kills']['zombies'],
-                "players_kills": data['data']['players'][count]['kills']['players'],
-                "banned": data['data']['players'][count]['banned']['banActive'],
-                "banned_reason": data['data']['players'][count]['banned']['reason'],
-                "banned_until": data['data']['players'][count]['banned']['until'],
-            }
-            count += 1
-        if player_data[0] != None:
-            #If there are players online, this can return data
-            #If requesting players name, return name of player
-            if value == 'name':
-                return_msg = ''
-                for x in player_data:
-                    if player_data[x]['name'] == user:
-                        return_msg = player_data[x]['name'] + ' is online.'
-                return return_msg
-            elif value == 'ping':
-                return_msg = ''
-                for x in player_data:
-                    if player_data[x]['name'] == user:
-                        return_msg = player_data[x]['name'] + ' has a ping of ' + str(player_data[x]['ping']) + 'ms.'
-                return return_msg
-            elif value == 'whoisonline':
-                return_msg = 'Online Players: '
-                for x in player_data:
-                    if len(player_data) != 1:
-                        return_msg += player_data[x]['name'] + '; '
-                    elif len(player_data) == 1:
-                        return_msg = player_data[x]['name'] + ' is online.'
-                return return_msg
-            elif value == 'stats':
-                return_msg = ''
-                for x in player_data:
-                    if player_data[x]['name'] == user:
-                        return_msg = (player_data[x]['name'] + '/n Health: ' + str(player_data[x]['health']) + '/100.' + '/n' +
-                        'Stamina: ' + str(player_data[x]['stamina']) + '/100.' + '/n' + 'Score: ' + str(player_data[x]['score']) + '/n' +
-                        'Deaths: ' + str(player_data[x]['deaths']) + '/n' + 'Zombies Killed: ' + str(player_data[x]['zombies_kills']) + '/n' +
-                        'Players Killed: ' + str(player_data[x]['players_kills']) + '/n' + 'Banned: ' + str(player_data[x]['banned']))
-                return return_msg
+            count = 0
+            for (player_ind) in data['data']['players']:
+                # For each player in the list of players (represented by a integer), create an object for each player
+                player_data[count] = {
+                    "id": data['data']['players'][count]['entityId'],
+                    "name": data['data']['players'][count]['name'],
+                    "platformId": data['data']['players'][count]['platformId']['combinedString'],
+                    "crossplatformId": data['data']['players'][count]['crossplatformId']['combinedString'],
+                    "ip": data['data']['players'][count]['ip'],
+                    "ping": data['data']['players'][count]['ping'],
+                    "position_x": data['data']['players'][count]['position']['x'],
+                    "position_y": data['data']['players'][count]['position']['y'],
+                    "position_z": data['data']['players'][count]['position']['z'],
+                    # "level": data['data']['players'][count]['level'], #Not available in the API yet?
+                    "health": data['data']['players'][count]['health'],
+                    "stamina": data['data']['players'][count]['stamina'],
+                    "score": data['data']['players'][count]['score'],
+                    "deaths": data['data']['players'][count]['deaths'],
+                    "zombies_kills": data['data']['players'][count]['kills']['zombies'],
+                    "players_kills": data['data']['players'][count]['kills']['players'],
+                    "banned": data['data']['players'][count]['banned']['banActive'],
+                    "banned_reason": data['data']['players'][count]['banned']['reason'],
+                    "banned_until": data['data']['players'][count]['banned']['until'],
+                }
+                count += 1
+            if player_data[0] != None:
+                # If there are players online, this can return data
+                # If requesting players name, return name of player
+                if value == 'name':
+                    return_msg = ''
+                    for x in player_data:
+                        if player_data[x]['name'] == user:
+                            return_msg = player_data[x]['name'] + ' is online.'
+                    return return_msg
+                elif value == 'ping':
+                    return_msg = ''
+                    for x in player_data:
+                        if player_data[x]['name'] == user:
+                            return_msg = player_data[x]['name'] + ' has a ping of ' + str(
+                                player_data[x]['ping']) + 'ms.'
+                    return return_msg
+                elif value == 'whoisonline':
+                    return_msg = 'Online Players: '
+                    for x in player_data:
+                        if len(player_data) != 1:
+                            return_msg += player_data[x]['name'] + '; '
+                        elif len(player_data) == 1:
+                            return_msg = player_data[x]['name'] + ' is online.'
+                    return return_msg
+                elif value == 'stats':
+                    return player_data
+            else:
+                return "Players may be offline right now."
         else:
-            return "Player may be offline right now."
-    else:
-        print('Error!')
-        return None # Handle
+            print('Error!')
+            return None  # Handle
+    except Exception as e:
+        print('Error: ' + str(e))
+        return "Players are Offline or Error Occurred."
 
 ############################################################################################################################################################################################################
 ############################################################################################################################################################################################################
@@ -194,7 +192,7 @@ async def on_message(message):
 ############################################################################################################################################################################################################
 # Bot Commands (Commands)
 @bot.command()
-async def helpme(ctx):
+async def helpme(ctx): # Help Command -- helpme -- Update as needed
     embed = discord.Embed(
         title='7 Days to Die Companion Bot',
         description='List of Commands for the 7 Days to Die Companion Bot',
@@ -204,6 +202,8 @@ async def helpme(ctx):
     embed.add_field(name='!ping', value='Pong!', inline=False)
     embed.add_field(name='!bm', value='Get the next Blood Moon Day', inline=False)
     embed.add_field(name='!cd', value='Get the current day', inline=False)
+    embed.add_field(name='!whoisonline', value='Get the list of online players', inline=False)
+    embed.add_field(name='!playerstats <player>', value='Get the stats of a player NOTE: Username is Case-sensitive', inline=False)
     await ctx.send(embed=embed)
 
 @bot.command()
@@ -234,18 +234,22 @@ async def whoisonline(ctx):
     online_players = get_player('whoisonline')
     await ctx.send(online_players)
 @bot.command()
-async def userstats(ctx, user: str, stat: str):
-    if stat == 'ping':
-        sel_player = get_player(stat, user)
+async def playerstats(ctx, user: str):
+    try:
+        all_player_stats = get_player("stats")
+        for x in all_player_stats:
+            if all_player_stats[x]['name'] == user:
+                sel_player = 'Player: ' + all_player_stats[x]['name'] + '\n' + \
+                             'Health: ' + str(all_player_stats[x]['health']) + '\n' + \
+                             'Stamina: ' + str(all_player_stats[x]['stamina']) + '\n' + \
+                             'Score: ' + str(all_player_stats[x]['score']) + '\n' + \
+                             'Deaths: ' + str(all_player_stats[x]['deaths']) + '\n' + \
+                             'Zombie Kills: ' + str(all_player_stats[x]['zombies_kills']) + '\n' + \
+                             'Player Kills: ' + str(all_player_stats[x]['players_kills']) + '\n'
         await ctx.send(sel_player)
-    elif stat == 'online':
-        sel_player = get_player(stat, user)
-        await ctx.send(sel_player)
-    elif stat == 'stats':
-        sel_player = get_player(stat, user)
-        await ctx.send(sel_player)
-    else:
-        await ctx.send('Invalid command or not Implemented yet. Please try again.')
+    except Exception as e:
+        print('Error: ' + str(e))
+        await ctx.send('Player is not online or does not exist.')
 
 ############################################################################################################################################################################################################
 # Running the bot
