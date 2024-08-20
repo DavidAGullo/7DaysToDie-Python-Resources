@@ -1,7 +1,9 @@
 # Discord bot.py for 7 Days to Die Companion Bot
+import asyncio
 import os
 import discord
 import requests
+from discord import app_commands
 from discord.ext import commands
 from dotenv import load_dotenv
 
@@ -21,9 +23,6 @@ bot = commands.Bot(command_prefix='!', intents=intents)
 token_name = os.getenv('TOKEN_NAME') # X-SDTD-API-TOKENNAME -- Actual Key Name for Token Name
 token_value = os.getenv('TOKEN_SECRET') # X-SDTD-API-TOKENSECRET -- Actual Key Name for Secret
 web_Url = os.getenv('WEB_URL') #Should be the URL for the portal but instead of the app that we are accessing we will use 'api'
-
-# Create a new bot
-client = discord.Client(intents=intents)
 
 ############################################################################################################################################################################################################
 ############################################################################################################################################################################################################
@@ -129,19 +128,8 @@ def get_player(value):
             if player_data[0] != None:
                 # If there are players online, this can return data
                 # If requesting players name, return name of player
-                if value == 'name':
-                    return_msg = ''
-                    for x in player_data:
-                        if player_data[x]['name'] == user:
-                            return_msg = player_data[x]['name'] + ' is online.'
-                    return return_msg
-                elif value == 'ping':
-                    return_msg = ''
-                    for x in player_data:
-                        if player_data[x]['name'] == user:
-                            return_msg = player_data[x]['name'] + ' has a ping of ' + str(
-                                player_data[x]['ping']) + 'ms.'
-                    return return_msg
+                if value == 'stats':
+                    return player_data
                 elif value == 'whoisonline':
                     return_msg = 'Online Players: '
                     for x in player_data:
@@ -150,8 +138,6 @@ def get_player(value):
                         elif len(player_data) == 1:
                             return_msg = player_data[x]['name'] + ' is online.'
                     return return_msg
-                elif value == 'stats':
-                    return player_data
             else:
                 return "Players may be offline right now."
         else:
@@ -186,7 +172,9 @@ async def on_message(message):
 
     # Process Commands
     await bot.process_commands(message)
-    await message.delete()
+    if message.content.startswith('!'): # Check if Command
+        # Delete Messages that are commands
+        await message.delete()
 
 
 ############################################################################################################################################################################################################
@@ -204,6 +192,8 @@ async def helpme(ctx): # Help Command -- helpme -- Update as needed
     embed.add_field(name='!cd', value='Get the current day', inline=False)
     embed.add_field(name='!whoisonline', value='Get the list of online players', inline=False)
     embed.add_field(name='!playerstats <player>', value='Get the stats of a player NOTE: Username is Case-sensitive', inline=False)
+    #For Admins Only
+    embed.add_field(name='!clear_bot_messages <amount>', value='Clears the bot messages in the channel (Staff Only)', inline=False)
     await ctx.send(embed=embed)
 
 @bot.command()
@@ -236,6 +226,7 @@ async def whoisonline(ctx):
 @bot.command()
 async def playerstats(ctx, user: str):
     try:
+        sel_player = ''
         all_player_stats = get_player("stats")
         for x in all_player_stats:
             if all_player_stats[x]['name'] == user:
@@ -250,6 +241,20 @@ async def playerstats(ctx, user: str):
     except Exception as e:
         print('Error: ' + str(e))
         await ctx.send('Player is not online or does not exist.')
+
+@bot.command()
+async def clear_bot_messages(ctx, amount: int = 5):
+    role_ids = [1243655876305223730, 1243655630783512699]  # Replace with your role's ID
+    has_role = any(discord.utils.get(ctx.author.roles, id=role_id) for role_id in role_ids)
+
+    if has_role:
+        def is_bot(m):
+            return m.author == bot.user
+
+        await ctx.channel.purge(limit=amount, check=is_bot)
+    else:
+        await ctx.send("You don't have the required role to use this command.")
+
 
 ############################################################################################################################################################################################################
 # Running the bot
