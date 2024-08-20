@@ -1,5 +1,5 @@
 # 7 Days to Die Companion Bot - Documentation
-##Overview
+## Overview
 This script is a Discord bot designed to interact with a "7 Days to Die" game server. The bot provides various functionalities, including fetching game server stats such as the current day, the next Blood Moon day, and the list of online players. The bot is built using the discord.py library and communicates with the game server through API calls.
 
 ## Setup
@@ -23,6 +23,8 @@ The following Python libraries are required:
 
 - dotenv: For loading environment variables from a .env file.
 
+- discord.ext: For advanced discord bot features
+
 ## Bot Configuration
 
 ### Discord Bot Intents
@@ -34,7 +36,7 @@ The bot is configured with default intents, with explicit permission to read mes
 
 ### Bot Client Initialization
 ```
-client = discord.Client(intents=intents)
+bot = commands.Bot(command_prefix='!', intents=intents)
 ```
 A Discord client is created with the specified intents.
 
@@ -68,7 +70,6 @@ Fetches the current day from the game server and calculates the number of days u
 `get_current_day()`
 Fetches the current day in the game from the server.
 
-[Work in Progress]
 `get_player(value)`
 Fetches player information from the game server. The value parameter determines what specific information is retrieved (e.g., player ID, name, platform ID, etc.). The function uses several helper functions to extract specific pieces of player data.
 
@@ -91,6 +92,36 @@ Options:
         "all": get_all_info,
         "all_no_id": get_all_no_id,
 ```
+**TO USE IT**
+Return the stats value so that it gives the whole player context, and compare from the available list
+
+*Example*
+```
+@bot.command()
+async def playerstats(ctx, user: str):
+    try:
+        sel_player = ''
+        all_player_stats = get_player("stats")
+        for x in all_player_stats:
+            if all_player_stats[x]['name'] == user:
+                sel_player = 'Player: ' + all_player_stats[x]['name'] + '\n' + \
+                             'Health: ' + str(all_player_stats[x]['health']) + '\n' + \
+                             'Stamina: ' + str(all_player_stats[x]['stamina']) + '\n' + \
+                             'Score: ' + str(all_player_stats[x]['score']) + '\n' + \
+                             'Deaths: ' + str(all_player_stats[x]['deaths']) + '\n' + \
+                             'Zombie Kills: ' + str(all_player_stats[x]['zombies_kills']) + '\n' + \
+                             'Player Kills: ' + str(all_player_stats[x]['players_kills']) + '\n'
+        await ctx.send(sel_player)
+    except Exception as e:
+        print('Error: ' + str(e))
+        await ctx.send('Player is not online or does not exist.')
+```
+
+`clear_bot_messages(amount)`
+Default amount is 5 but this will delete the las x amount of bot messages that may still be left behind
+
+[Work in Progress]
+
 [Future]
 `heal_all`
 `teleport`
@@ -103,17 +134,11 @@ Options:
 This event is triggered when the bot successfully connects to Discord. It prints the number of guilds (servers) the bot is connected to.
 
 `on_message(message)`
-This event is triggered whenever a message is sent in a channel the bot has access to. The bot listens for specific commands and responds accordingly:
-
-- `!bloodmoon` or `!bm:` Fetches and displays the next Blood Moon day.
-- `!currentday` or `!cd:` Fetches and displays the current in-game day.
-- `!viewonline` or `!vo:` Fetches and displays the names of online players.
-
-Each command deletes the user's original message and any previous bot responses containing similar content to keep the channel clean.
+This event is triggered whenever a message is sent in a channel the bot has access to. The bot listens for specific commands and responds accordingly after processing the message. If the command is a bot command starting with the character '!', each command will be deleted after its processed leaving only the results of the command.
 
 ## Running the Bot
 The bot is started using:
 ```
-client.run(discord_token)
+bot.run(discord_token)
 ```
 This line initiates the bot using the Discord token specified in the environment variables.
