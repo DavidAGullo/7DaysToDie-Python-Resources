@@ -3,6 +3,8 @@ import asyncio
 import os
 import discord
 import requests
+import re
+from datetime import datetime
 from discord import app_commands
 from discord.ext import commands
 from dotenv import load_dotenv
@@ -52,6 +54,52 @@ def find_value_in_json(json_data, target_key):
 ############################################################################################################################################################################################################
 # Functions for 7 Days to Die Companion Bot
 
+### Function to get the server status
+def get_server_status():
+    url = web_Url + '/serverstats'
+    headers = {
+        "X-SDTD-API-TOKENNAME": token_name,
+        "X-SDTD-API-SECRET": token_value,
+        "Content-Type": "application/json"
+    }
+    server_time = None
+    response = requests.get(url, headers=headers)
+    if response.status_code == 200:
+        data = response.json()
+        server_time = data['meta']['serverTime']
+        if server_time != None:
+            fixed_ts = re.sub(r"(\.\d{6})\d+", r"\1", server_time)  # Keeps only 6 digits
+            dt = datetime.fromisoformat(fixed_ts[:-6])
+            formatted_time = dt.strftime('%Y-%m-%d %H:%M:%S')
+            return ("Server is Online! | Server Time is: "  +  formatted_time + " | Discord Bot Version 1.0")
+    elif response.status_code == 401:
+        print('Error! Invalid Token.')
+        return None # Handle Error
+    elif response.status_code == 403:
+        print('Error! Invalid Token.')
+        return None
+    elif response.status_code == 404:
+        print('Error! Invalid URL.')
+        return None
+    elif response.status_code == 500:
+        print('Error! Server Error.')
+        return None
+    elif response.status_code == 503:
+        print('Error! Server Unavailable.')
+        return None
+    elif response.status_code == 504:
+        print('Error! Server Timeout.')
+        return None
+    elif response.status_code == 429:
+        print('Error! Too Many Requests.')
+        return None
+    elif response.status_code == 400:
+        print('Error! Bad Request.')
+        return None
+    else:
+        print('Error! Unknown Error. STATUS CODE: ' + str(response.status_code))
+        return None # Handle Error
+
 ### Function to get the Blood Moon Day
 def get_bloodmoon_day():
     url = web_Url + '/serverstats'
@@ -69,6 +117,8 @@ def get_bloodmoon_day():
     else:
         print('Error!')
         return None # Handle Error
+    
+### Function to get the current day
 def get_current_day():
     url = web_Url + '/serverstats'
     headers = {
@@ -85,7 +135,7 @@ def get_current_day():
         print('Error!')
         return None # Handle Error
 
-
+### Function to get the players
 def get_player(value):
     try:
         url = web_Url + '/Player'
@@ -147,6 +197,43 @@ def get_player(value):
         print('Error: ' + str(e))
         return "Players are Offline or Error Occurred."
 
+### Function to Set Game Time
+def set_game_time(day, hour, minute):
+    url = web_Url + '/command'
+    headers = {
+        "X-SDTD-API-TOKENNAME": token_name,
+        "X-SDTD-API-SECRET": token_value,
+        "Content-Type": "application/json"
+    }
+    body = {
+        "command": "settime " + str(day) + " " + str(hour) + " " + str(minute)
+    }
+    response = requests.post(url, headers=headers, json=body)
+    if response.status_code == 200:
+        print('Game Time Set!')
+        return True
+    else:
+        print('Error!')
+        return False
+
+def send_command(command:str):
+    url = web_Url + '/command'
+    headers = {
+        "X-SDTD-API-TOKENNAME": token_name,
+        "X-SDTD-API-SECRET": token_value,
+        "Content-Type": "application/json"
+    }
+    body = {
+        "command": command
+    }
+    response = requests.post(url, headers=headers, json=body)
+    if response.status_code == 200:
+        print('Command Sent!')
+        return True
+    else:
+        print('Error!')
+        return False
+
 ############################################################################################################################################################################################################
 ############################################################################################################################################################################################################
 # Event Listener for Bot OFFLINE/ONLINE STATUS
@@ -179,6 +266,17 @@ async def on_message(message):
 
 ############################################################################################################################################################################################################
 # Bot Commands (Commands)
+
+# Global Variables
+
+## Discord Roles
+global AdministratorsRole; AdministratorsRole = 1243653996858708081 # Administrators Role ID
+global StaffAdminsRole; StaffAdminsRole = 1243655876305223730 # Staff Admin Role ID
+global DevelopersRole; DevelopersRole = 1243654947644379257 # Developers Role ID
+global ModeratorsRole; ModeratorsRole = 1243655630783512699 # Moderators Role ID
+
+
+# Bot Commands
 @bot.command()
 async def helpme(ctx): # Help Command -- helpme -- Update as needed
     embed = discord.Embed(
@@ -195,6 +293,13 @@ async def helpme(ctx): # Help Command -- helpme -- Update as needed
     #For Admins Only
     embed.add_field(name='!clear_bot_messages <amount>', value='Clears the bot messages in the channel (Staff Only)', inline=False)
     await ctx.send(embed=embed)
+
+@bot.command(
+    name='online',
+    aliases=['status', 'serverstatus', 'server', 'is_server_online']
+)
+async def is_server_online(ctx):
+    await ctx.send(get_server_status())
 
 @bot.command()
 async def ping(ctx):
@@ -244,7 +349,7 @@ async def playerstats(ctx, user: str):
 
 @bot.command()
 async def clear_bot_messages(ctx, amount: int = 5):
-    role_ids = [1243655876305223730, 1243655630783512699]  # Replace with your role's ID
+    role_ids = [AdministratorsRole, ModeratorsRole] 
     has_role = any(discord.utils.get(ctx.author.roles, id=role_id) for role_id in role_ids)
 
     if has_role:
@@ -255,6 +360,35 @@ async def clear_bot_messages(ctx, amount: int = 5):
     else:
         await ctx.send("You don't have the required role to use this command.")
 
+@bot.command(
+    name='settime',
+    aliases=['set_time', 'st']
+)
+async def settime(ctx, day=0, hour=0, minute=0):
+    role_ids = [AdministratorsRole, StaffAdminsRole, DevelopersRole] 
+    has_role = any(discord.utils.get(ctx.author.roles, id=role_id) for role_id in role_ids)
+    if has_role:
+        try:
+            set_game_time(day, hour, minute)
+            await ctx.send('Game Time Set!')
+        except Exception as e:
+            print('Error: ' + str(e))
+            await ctx.send('Error! Game Time Not Set!')
+    
+@bot.command(
+    name='run',
+    aliases=['r']
+)
+async def run(ctx, command: str):
+    role_ids = [AdministratorsRole, DevelopersRole] 
+    has_role = any(discord.utils.get(ctx.author.roles, id=role_id) for role_id in role_ids)
+    if has_role:
+        try:
+            send_command(command)
+            await ctx.send('Command Sent!')
+        except Exception as e:
+            print('Error: ' + str(e))
+            await ctx.send('Error! Command Not Sent!')
 
 ############################################################################################################################################################################################################
 # Running the bot
