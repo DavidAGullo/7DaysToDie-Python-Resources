@@ -197,6 +197,43 @@ def get_player(value):
         print('Error: ' + str(e))
         return "Players are Offline or Error Occurred."
 
+### Function to Set Game Time
+def set_game_time(day, hour, minute):
+    url = web_Url + '/command'
+    headers = {
+        "X-SDTD-API-TOKENNAME": token_name,
+        "X-SDTD-API-SECRET": token_value,
+        "Content-Type": "application/json"
+    }
+    body = {
+        "command": "settime " + str(day) + " " + str(hour) + " " + str(minute)
+    }
+    response = requests.post(url, headers=headers, json=body)
+    if response.status_code == 200:
+        print('Game Time Set!')
+        return True
+    else:
+        print('Error!')
+        return False
+
+def send_command(command:str):
+    url = web_Url + '/command'
+    headers = {
+        "X-SDTD-API-TOKENNAME": token_name,
+        "X-SDTD-API-SECRET": token_value,
+        "Content-Type": "application/json"
+    }
+    body = {
+        "command": command
+    }
+    response = requests.post(url, headers=headers, json=body)
+    if response.status_code == 200:
+        print('Command Sent!')
+        return True
+    else:
+        print('Error!')
+        return False
+
 ############################################################################################################################################################################################################
 ############################################################################################################################################################################################################
 # Event Listener for Bot OFFLINE/ONLINE STATUS
@@ -229,6 +266,17 @@ async def on_message(message):
 
 ############################################################################################################################################################################################################
 # Bot Commands (Commands)
+
+# Global Variables
+
+## Discord Roles
+global AdministratorsRole; AdministratorsRole = 1243653996858708081 # Administrators Role ID
+global StaffAdminsRole; StaffAdminsRole = 1243655876305223730 # Staff Admin Role ID
+global DevelopersRole; DevelopersRole = 1243654947644379257 # Developers Role ID
+global ModeratorsRole; ModeratorsRole = 1243655630783512699 # Moderators Role ID
+
+
+# Bot Commands
 @bot.command()
 async def helpme(ctx): # Help Command -- helpme -- Update as needed
     embed = discord.Embed(
@@ -301,7 +349,7 @@ async def playerstats(ctx, user: str):
 
 @bot.command()
 async def clear_bot_messages(ctx, amount: int = 5):
-    role_ids = [1243655876305223730, 1243655630783512699]  # Replace with your role's ID
+    role_ids = [AdministratorsRole, ModeratorsRole] 
     has_role = any(discord.utils.get(ctx.author.roles, id=role_id) for role_id in role_ids)
 
     if has_role:
@@ -312,6 +360,35 @@ async def clear_bot_messages(ctx, amount: int = 5):
     else:
         await ctx.send("You don't have the required role to use this command.")
 
+@bot.command(
+    name='settime',
+    aliases=['set_time', 'st']
+)
+async def settime(ctx, day=0, hour=0, minute=0):
+    role_ids = [AdministratorsRole, StaffAdminsRole, DevelopersRole] 
+    has_role = any(discord.utils.get(ctx.author.roles, id=role_id) for role_id in role_ids)
+    if has_role:
+        try:
+            set_game_time(day, hour, minute)
+            await ctx.send('Game Time Set!')
+        except Exception as e:
+            print('Error: ' + str(e))
+            await ctx.send('Error! Game Time Not Set!')
+    
+@bot.command(
+    name='run',
+    aliases=['r']
+)
+async def run(ctx, command: str):
+    role_ids = [AdministratorsRole, DevelopersRole] 
+    has_role = any(discord.utils.get(ctx.author.roles, id=role_id) for role_id in role_ids)
+    if has_role:
+        try:
+            send_command(command)
+            await ctx.send('Command Sent!')
+        except Exception as e:
+            print('Error: ' + str(e))
+            await ctx.send('Error! Command Not Sent!')
 
 ############################################################################################################################################################################################################
 # Running the bot
