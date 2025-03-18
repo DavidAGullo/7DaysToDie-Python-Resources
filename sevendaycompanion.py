@@ -216,6 +216,7 @@ def set_game_time(day, hour, minute):
         print('Error!')
         return False
 
+### Function to Send Command
 def send_command(command:str):
     url = web_Url + '/command'
     headers = {
@@ -233,6 +234,26 @@ def send_command(command:str):
     else:
         print('Error!')
         return False
+
+### Function to Heal a Player
+def heal_player(player_name:str):
+    url = web_Url + '/command'
+    headers = {
+        "X-SDTD-API-TOKENNAME": token_name,
+        "X-SDTD-API-SECRET": token_value,
+        "Content-Type": "application/json"
+    }
+    body = {
+        "command": "buffplayer " + player_name + " buffDrugPainkillers"
+    }
+    response = requests.post(url, headers=headers, json=body)
+    if response.status_code == 200:
+        print('Player Healed!')
+        return True
+    else:
+        print('Error!')
+        return False
+    
 
 ############################################################################################################################################################################################################
 ############################################################################################################################################################################################################
@@ -275,39 +296,29 @@ global StaffAdminsRole; StaffAdminsRole = 1243655876305223730 # Staff Admin Role
 global DevelopersRole; DevelopersRole = 1243654947644379257 # Developers Role ID
 global ModeratorsRole; ModeratorsRole = 1243655630783512699 # Moderators Role ID
 
-
-# Bot Commands
-@bot.command()
-async def helpme(ctx): # Help Command -- helpme -- Update as needed
-    embed = discord.Embed(
-        title='7 Days to Die Companion Bot',
-        description='List of Commands for the 7 Days to Die Companion Bot',
-        color=discord.Color.blue()
-    )
-    embed.add_field(name='!helpme', value='Get the list of commands', inline=False)
-    embed.add_field(name='!ping', value='Pong!', inline=False)
-    embed.add_field(name='!bm', value='Get the next Blood Moon Day', inline=False)
-    embed.add_field(name='!cd', value='Get the current day', inline=False)
-    embed.add_field(name='!whoisonline', value='Get the list of online players', inline=False)
-    embed.add_field(name='!playerstats <player>', value='Get the stats of a player NOTE: Username is Case-sensitive', inline=False)
-    #For Admins Only
-    embed.add_field(name='!clear_bot_messages <amount>', value='Clears the bot messages in the channel (Staff Only)', inline=False)
-    await ctx.send(embed=embed)
-
 @bot.command(
-    name='online',
-    aliases=['status', 'serverstatus', 'server', 'is_server_online']
+    name='Is Server Online',
+    aliases=['status', 'serverstatus', 'server', 'is_server_online'],
+    help='Check if the server is online.',
+    brief='!status - Check if the server is online.'
 )
 async def is_server_online(ctx):
     await ctx.send(get_server_status())
 
-@bot.command()
+@bot.command(
+    name='Ping',
+    aliases=['ping', 'p'],
+    help='Check if the bot is online.',
+    brief='!ping - Check if the bot is online.'
+)
 async def ping(ctx):
     await ctx.send('Pong!')
 
 @bot.command(
-    name='bloodmoon',
-    aliases=['bm']
+    name='Blood Moon',
+    aliases=['bm','bloodmoon', 'blood_moon', 'bloodmoon_day'],
+    help='Check when the next blood moon is.',
+    brief='!bm - Check when the next blood moon is.'
 )
 async def bm(ctx):
     bloodmoon_day = get_bloodmoon_day()
@@ -316,19 +327,31 @@ async def bm(ctx):
     await ctx.send(msg)
 
 @bot.command(
-    name='currentday',
-    aliases=['cd']
+    name='Current Day',
+    aliases=['cd', 'currentday', 'day'],
+    help='Check the current day.',
+    brief='!cd - Check the current day.'
 )
 async def cd(ctx):
     cur_day = get_current_day()
     msg = 'The current day is: ' + str(cur_day)
     await ctx.send(msg)
 
-@bot.command()
+@bot.command(
+    name='Who is Online',
+    aliases=['whoisonline', 'onlineplayers', 'players'],
+    help='Check who is online.',
+    brief='!whoisonline - Check who is online.'
+)
 async def whoisonline(ctx):
     online_players = get_player('whoisonline')
     await ctx.send(online_players)
-@bot.command()
+@bot.command(
+    name='Player Stats',
+    aliases=['playerstats', 'stats', 'player'],
+    help='Check a players stats.',
+    brief='!playerstats <player_name> - Check a players stats. Might want to use Who is Online first.'
+)
 async def playerstats(ctx, user: str):
     try:
         sel_player = ''
@@ -347,7 +370,29 @@ async def playerstats(ctx, user: str):
         print('Error: ' + str(e))
         await ctx.send('Player is not online or does not exist.')
 
-@bot.command()
+@bot.command(
+    name='Heal Player',
+    aliases=['healplayer', 'hp'],
+    help='Heal a player.',
+    brief='!healplayer <player_name> - Heal a player.'
+)
+async def heal(ctx, player_name: str):
+    role_ids = [AdministratorsRole, StaffAdminsRole, DevelopersRole] 
+    has_role = any(discord.utils.get(ctx.author.roles, id=role_id) for role_id in role_ids)
+    if has_role:
+        try:
+            heal_player(player_name)
+            await ctx.send('Player Healed!')
+        except Exception as e:
+            print('Error: ' + str(e))
+            await ctx.send('Error! Player Not Healed!')
+
+@bot.command(
+    name='Clear Bot Messages',
+    aliases=['clearbotmsgs', 'cbm', 'cbmsgs'],
+    help='Clear bot messages.',
+    brief='!cbm <amount> - Clear bot messages.'
+)
 async def clear_bot_messages(ctx, amount: int = 5):
     role_ids = [AdministratorsRole, ModeratorsRole] 
     has_role = any(discord.utils.get(ctx.author.roles, id=role_id) for role_id in role_ids)
@@ -361,8 +406,10 @@ async def clear_bot_messages(ctx, amount: int = 5):
         await ctx.send("You don't have the required role to use this command.")
 
 @bot.command(
-    name='settime',
-    aliases=['set_time', 'st']
+    name='Set Time',
+    aliases=['set_time', 'st'],
+    help='Set the game time.',
+    brief='!st <day> <hour> <minute> - Set the game time.'
 )
 async def settime(ctx, day=0, hour=0, minute=0):
     role_ids = [AdministratorsRole, StaffAdminsRole, DevelopersRole] 
@@ -376,8 +423,10 @@ async def settime(ctx, day=0, hour=0, minute=0):
             await ctx.send('Error! Game Time Not Set!')
     
 @bot.command(
-    name='run',
-    aliases=['r']
+    name='Run Command',
+    aliases=['r'],
+    help='Run a command.',
+    brief='!r <command> - Run a command.'
 )
 async def run(ctx, command: str):
     role_ids = [AdministratorsRole, DevelopersRole] 
